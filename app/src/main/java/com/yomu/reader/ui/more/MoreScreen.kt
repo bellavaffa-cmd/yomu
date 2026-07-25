@@ -233,9 +233,9 @@ private fun DriveSyncSection() {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("Auto-backup", color = MaterialTheme.colorScheme.onSurface)
+                            Text("Auto-sync", color = MaterialTheme.colorScheme.onSurface)
                             Text(
-                                "Back up automatically when your library changes",
+                                "Back up on changes, and restore a newer backup on launch",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

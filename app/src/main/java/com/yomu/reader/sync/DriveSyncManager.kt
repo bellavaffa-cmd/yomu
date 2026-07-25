@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -89,7 +90,7 @@ class DriveSyncManager(
         scope.launch {
             merge(
                 repository.libraryChanges.drop(1).map { },
-                extensionRepoStore.repos.drop(1).map { },
+                extensionRepoStore.repos.distinctUntilChanged().drop(1).map { },
             )
                 .debounce(AUTO_BACKUP_DEBOUNCE_MS)
                 .collect {
@@ -97,6 +98,33 @@ class DriveSyncManager(
                         backup()
                     }
                 }
+        }
+    }
+
+    /**
+     * On launch, if auto-sync is on and signed in, pull the Drive backup and apply it
+     * when it is newer than our last sync. Applying via [MangaRepository.importLibrary]
+     * does not bump [MangaRepository.libraryChanges], so it won't trigger an auto-backup.
+     */
+    fun startAutoRestore(scope: CoroutineScope) {
+        scope.launch {
+            if (!appPreferences.autoSync.first()) return@launch
+            val account = lastAccount() ?: return@launch
+            try {
+                val token = token(account)
+                val id = withContext(Dispatchers.IO) { findFileId(token) } ?: return@launch
+                val json = withContext(Dispatchers.IO) { download(token, id) }
+                val payload = adapter.fromJson(json) ?: return@launch
+                if (payload.updatedAt > appPreferences.lastDriveSync.first()) {
+                    repository.importLibrary(payload.categories, payload.library)
+                    payload.extensionRepos.forEach { extensionRepoStore.add(it) }
+                    extensionManager.loadInstalledExtensions()
+                    appPreferences.setLastDriveSync(payload.updatedAt)
+                    _state.value = _state.value.copy(message = "Restored newer backup (${payload.library.size} manga)")
+                }
+            } catch (e: Exception) {
+                // Silent on launch — surfaced only if the user syncs manually.
+            }
         }
     }
 
@@ -147,14 +175,16 @@ class DriveSyncManager(
         }
         _state.value = _state.value.copy(busy = true, message = "$action…")
         try {
-            val token = withContext(Dispatchers.IO) {
-                GoogleAuthUtil.getToken(context, account.account!!, "oauth2:$DRIVE_APPDATA_SCOPE")
-            }
+            val token = token(account)
             val result = withContext(Dispatchers.IO) { block(token) }
             _state.value = _state.value.copy(busy = false, message = result)
         } catch (e: Exception) {
             _state.value = _state.value.copy(busy = false, message = "$action failed: ${e.message}")
         }
+    }
+
+    private suspend fun token(account: GoogleSignInAccount): String = withContext(Dispatchers.IO) {
+        GoogleAuthUtil.getToken(context, account.account!!, "oauth2:$DRIVE_APPDATA_SCOPE")
     }
 
     private suspend fun buildPayload(): SyncPayload {
