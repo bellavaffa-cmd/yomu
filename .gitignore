@@ -1,0 +1,23 @@
+# Gradle / build
+.gradle/
+build/
+!repo/               # keep the hostable extension repo folder (APKs + index.min.json)
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local config (machine-specific SDK path)
+local.properties
+
+# Signing (never commit)
+*.keystore
+*.jks
+keystore.properties
+
+# OS
+.DS_Store
+Thumbs.db

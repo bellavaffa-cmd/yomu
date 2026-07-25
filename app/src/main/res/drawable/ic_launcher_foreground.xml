@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple open-book glyph centered in the adaptive safe zone -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,40.5c-5.4,-3.6 -12.6,-5.5 -20,-5.5c-3.9,0 -7.7,0.5 -11,1.5v34.5c3.3,-1 7.1,-1.5 11,-1.5c7.4,0 14.6,1.9 20,5.5V40.5z" />
+    <path
+        android:fillColor="#DCE7FF"
+        android:pathData="M74,35c-7.4,0 -14.6,1.9 -20,5.5v34.5c5.4,-3.6 12.6,-5.5 20,-5.5c3.9,0 7.7,0.5 11,1.5V36.5C81.7,35.5 77.9,35 74,35z" />
+</vector>
