@@ -2,6 +2,7 @@ package com.yomu.reader.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -30,5 +31,13 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setReadingMode(mode: ReadingMode) {
         context.appPrefsDataStore.edit { it[readingModeKey] = mode.name }
+    }
+
+    private val lastDriveSyncKey = longPreferencesKey("last_drive_sync")
+
+    val lastDriveSync: Flow<Long> = context.appPrefsDataStore.data.map { it[lastDriveSyncKey] ?: 0L }
+
+    suspend fun setLastDriveSync(timestamp: Long) {
+        context.appPrefsDataStore.edit { it[lastDriveSyncKey] = timestamp }
     }
 }

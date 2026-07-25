@@ -1,6 +1,9 @@
 package com.yomu.reader.ui.more
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Label
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Source
@@ -25,10 +29,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -37,8 +44,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.yomu.reader.BuildConfig
+import com.yomu.reader.ui.rememberDriveSyncManager
 import com.yomu.reader.ui.rememberRepository
 import com.yomu.reader.ui.rememberUpdateManager
+import kotlinx.coroutines.launch
 
 @Composable
 fun MoreScreen(
@@ -128,6 +137,8 @@ fun MoreScreen(
             )
         }
 
+        DriveSyncSection()
+
         ListItem(
             headlineContent = { Text("Downloads") },
             supportingContent = { Text("Read chapters offline") },
@@ -157,5 +168,75 @@ fun MoreScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp),
         )
+    }
+}
+
+@Composable
+private fun DriveSyncSection() {
+    val sync = rememberDriveSyncManager()
+    val state by sync.state.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    val signInLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        sync.onSignInResult(result.data)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text(
+                    "Google Drive sync",
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
+            }
+            Text(
+                "Back up your library, categories and extension repos to your private Drive app folder.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+            Spacer(Modifier.height(12.dp))
+
+            if (state.email == null) {
+                Button(onClick = { signInLauncher.launch(sync.signInIntent()) }) {
+                    Text("Sign in with Google")
+                }
+            } else {
+                Text(
+                    state.email!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(8.dp))
+                if (state.busy) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Text("Working…", modifier = Modifier.padding(start = 12.dp))
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { scope.launch { sync.backup() } }) { Text("Back up") }
+                        OutlinedButton(onClick = { scope.launch { sync.restore() } }) { Text("Restore") }
+                        TextButton(onClick = { sync.signOut() }) { Text("Sign out") }
+                    }
+                }
+            }
+
+            state.message?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
     }
 }

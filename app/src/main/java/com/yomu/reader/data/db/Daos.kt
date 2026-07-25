@@ -13,6 +13,9 @@ interface MangaDao {
     @Query("SELECT * FROM manga WHERE favorite = 1 ORDER BY title COLLATE NOCASE ASC")
     fun observeLibrary(): Flow<List<MangaEntity>>
 
+    @Query("SELECT * FROM manga WHERE favorite = 1")
+    suspend fun getFavorites(): List<MangaEntity>
+
     @Query("SELECT * FROM manga WHERE id = :id")
     fun observeManga(id: Long): Flow<MangaEntity?>
 
@@ -117,8 +120,14 @@ interface CategoryDao {
 
     // --- manga ↔ category links ---
 
+    @Query("SELECT * FROM categories ORDER BY sort ASC, name COLLATE NOCASE ASC")
+    suspend fun getAll(): List<CategoryEntity>
+
     @Query("SELECT categoryId FROM manga_categories WHERE mangaId = :mangaId")
     fun observeCategoryIdsForManga(mangaId: Long): Flow<List<Long>>
+
+    @Query("SELECT categoryId FROM manga_categories WHERE mangaId = :mangaId")
+    suspend fun getCategoryIdsForManga(mangaId: Long): List<Long>
 
     @Query("DELETE FROM manga_categories WHERE mangaId = :mangaId")
     suspend fun clearCategoriesForManga(mangaId: Long)

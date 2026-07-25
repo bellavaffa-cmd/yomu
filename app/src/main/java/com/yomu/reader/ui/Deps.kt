@@ -7,6 +7,7 @@ import com.yomu.reader.data.AppPreferences
 import com.yomu.reader.data.ExtensionRepoStore
 import com.yomu.reader.data.MangaRepository
 import com.yomu.reader.extension.ExtensionManager
+import com.yomu.reader.sync.DriveSyncManager
 import com.yomu.reader.update.UpdateManager
 
 @Composable
@@ -28,3 +29,6 @@ fun rememberAppPreferences(): AppPreferences = app().appPreferences
 
 @Composable
 fun rememberUpdateManager(): UpdateManager = app().updateManager
+
+@Composable
+fun rememberDriveSyncManager(): DriveSyncManager = app().driveSyncManager

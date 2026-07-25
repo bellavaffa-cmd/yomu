@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.extensionDataStore by preferencesDataStore(name = "extension_repos")
@@ -21,6 +22,9 @@ class ExtensionRepoStore(private val context: Context) {
 
     val repos: Flow<List<String>> = context.extensionDataStore.data
         .map { prefs -> prefs[key].orEmpty().sorted() }
+
+    /** Current repo list snapshot (for backup). */
+    suspend fun current(): List<String> = repos.first()
 
     suspend fun add(rawUrl: String) {
         val normalized = normalize(rawUrl) ?: return

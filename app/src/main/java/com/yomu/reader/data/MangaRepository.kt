@@ -119,6 +119,60 @@ class MangaRepository(
     suspend fun setMangaCategories(mangaId: Long, categoryIds: List<Long>) =
         categoryDao.setCategoriesForManga(mangaId, categoryIds)
 
+    // --- Sync (backup / restore) ---
+
+    /** Snapshot the library + categories for backup. */
+    suspend fun exportLibrary(): Pair<List<String>, List<MangaSnapshot>> {
+        val categories = categoryDao.getAll()
+        val nameById = categories.associate { it.id to it.name }
+        val favorites = mangaDao.getFavorites()
+        val snapshots = favorites.map { m ->
+            val categoryNames = categoryDao.getCategoryIdsForManga(m.id).mapNotNull { nameById[it] }
+            MangaSnapshot(
+                source = m.source,
+                url = m.url,
+                title = m.title,
+                author = m.author,
+                artist = m.artist,
+                description = m.description,
+                genre = m.genre?.split(", ")?.filter { it.isNotBlank() } ?: emptyList(),
+                status = m.status,
+                thumbnailUrl = m.thumbnailUrl,
+                categories = categoryNames,
+            )
+        }
+        return categories.map { it.name } to snapshots
+    }
+
+    /** Apply a restored snapshot: recreate categories, favorite the manga, reassign categories. */
+    suspend fun importLibrary(categoryNames: List<String>, mangas: List<MangaSnapshot>) {
+        val nameToId = categoryDao.getAll().associate { it.name to it.id }.toMutableMap()
+        for (name in categoryNames) {
+            if (name !in nameToId) {
+                val id = categoryDao.insert(CategoryEntity(name = name, sort = categoryDao.nextSort()))
+                if (id > 0) nameToId[name] = id
+                else categoryDao.getAll().firstOrNull { it.name == name }?.let { nameToId[name] = it.id }
+            }
+        }
+        for (snap in mangas) {
+            val sManga = SManga(
+                url = snap.url,
+                title = snap.title,
+                author = snap.author,
+                artist = snap.artist,
+                description = snap.description,
+                genre = snap.genre,
+                status = snap.status,
+                thumbnailUrl = snap.thumbnailUrl,
+                initialized = snap.description != null,
+            )
+            val mangaId = getOrCreate(snap.source, sManga)
+            mangaDao.setFavorite(mangaId, true, now())
+            val ids = snap.categories.mapNotNull { nameToId[it] }
+            categoryDao.setCategoriesForManga(mangaId, ids)
+        }
+    }
+
     // --- Read state / history ---
 
     suspend fun setChapterRead(chapterId: Long, read: Boolean, lastPageRead: Int) {
