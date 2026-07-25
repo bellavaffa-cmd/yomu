@@ -3,6 +3,7 @@ package com.yomu.reader.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.yomu.reader.YomuApplication
+import com.yomu.reader.data.AppPreferences
 import com.yomu.reader.data.ExtensionRepoStore
 import com.yomu.reader.data.MangaRepository
 import com.yomu.reader.extension.ExtensionManager
@@ -20,3 +21,6 @@ fun rememberExtensionManager(): ExtensionManager = app().extensionManager
 
 @Composable
 fun rememberExtensionRepoStore(): ExtensionRepoStore = app().extensionRepoStore
+
+@Composable
+fun rememberAppPreferences(): AppPreferences = app().appPreferences
