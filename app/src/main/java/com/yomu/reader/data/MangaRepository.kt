@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 class MangaRepository(
     private val db: YomuDatabase,
     private val sourceManager: SourceManager,
+    private val downloadManager: DownloadManager,
     private val now: () -> Long = { System.currentTimeMillis() },
 ) {
     private val mangaDao get() = db.mangaDao()
@@ -80,11 +81,15 @@ class MangaRepository(
     }
 
     suspend fun getPages(mangaId: Long, chapterId: Long): List<Page> {
+        // Offline-first: serve downloaded pages when present.
+        downloadManager.localPages(mangaId, chapterId)?.let { return it }
         val manga = mangaDao.getById(mangaId) ?: return emptyList()
         val chapter = chapterDao.getById(chapterId) ?: return emptyList()
         val source = sourceManager.get(manga.source) ?: return emptyList()
         return source.getPageList(chapter.toSChapter())
     }
+
+    val downloads get() = downloadManager
 
     // --- Read state / history ---
 

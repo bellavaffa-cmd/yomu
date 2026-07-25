@@ -1,5 +1,6 @@
 package com.yomu.reader.ui.more
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Source
 import androidx.compose.material3.Icon
@@ -22,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.yomu.reader.ui.rememberRepository
 
 @Composable
-fun MoreScreen(contentPadding: PaddingValues) {
+fun MoreScreen(contentPadding: PaddingValues, onOpenDownloads: () -> Unit) {
     val repository = rememberRepository()
     val sourceCount = repository.sources.catalogueSources().size
 
@@ -37,6 +39,12 @@ fun MoreScreen(contentPadding: PaddingValues) {
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(20.dp),
+        )
+        ListItem(
+            headlineContent = { Text("Downloads") },
+            supportingContent = { Text("Read chapters offline") },
+            leadingContent = { Icon(Icons.Filled.Download, contentDescription = null) },
+            modifier = Modifier.clickable(onClick = onOpenDownloads),
         )
         ListItem(
             headlineContent = { Text("Sources") },

@@ -2,6 +2,7 @@ package com.yomu.reader.ui.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yomu.reader.data.DownloadProgress
 import com.yomu.reader.data.MangaRepository
 import com.yomu.reader.data.db.ChapterEntity
 import com.yomu.reader.data.db.MangaEntity
@@ -22,6 +23,9 @@ class MangaDetailViewModel(
     val chapters: StateFlow<List<ChapterEntity>> = repository.observeChapters(mangaId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val downloadStates: StateFlow<Map<Long, DownloadProgress>> = repository.downloads.states
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing
 
@@ -30,7 +34,12 @@ class MangaDetailViewModel(
 
     init {
         refresh()
+        repository.downloads.syncManga(mangaId)
     }
+
+    fun downloadChapter(chapterId: Long) = repository.downloads.downloadChapter(mangaId, chapterId)
+
+    fun deleteDownload(chapterId: Long) = repository.downloads.deleteChapter(mangaId, chapterId)
 
     fun refresh() {
         viewModelScope.launch {

@@ -4,6 +4,7 @@ import android.app.Application
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import com.yomu.reader.data.AppPreferences
+import com.yomu.reader.data.DownloadManager
 import com.yomu.reader.data.ExtensionRepoStore
 import com.yomu.reader.data.MangaRepository
 import com.yomu.reader.data.db.YomuDatabase
@@ -29,7 +30,10 @@ class YomuApplication : Application(), ImageLoaderFactory {
 
     val database: YomuDatabase by lazy { YomuDatabase.get(this) }
     val sourceManager: SourceManager by lazy { SourceManager() }
-    val repository: MangaRepository by lazy { MangaRepository(database, sourceManager) }
+    val downloadManager: DownloadManager by lazy {
+        DownloadManager(this, database, sourceManager, NetworkModule.okHttpClient)
+    }
+    val repository: MangaRepository by lazy { MangaRepository(database, sourceManager, downloadManager) }
     val extensionRepoStore: ExtensionRepoStore by lazy { ExtensionRepoStore(this) }
     val extensionManager: ExtensionManager by lazy { ExtensionManager(this, sourceManager) }
     val appPreferences: AppPreferences by lazy { AppPreferences(this) }

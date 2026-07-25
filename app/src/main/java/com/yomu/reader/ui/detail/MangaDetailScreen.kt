@@ -19,6 +19,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
@@ -48,6 +51,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.yomu.reader.data.DownloadProgress
+import com.yomu.reader.data.DownloadStatus
 import com.yomu.reader.data.db.ChapterEntity
 import com.yomu.reader.data.db.MangaEntity
 import com.yomu.reader.source.model.SManga
@@ -69,6 +74,7 @@ fun MangaDetailScreen(
     val manga by vm.manga.collectAsState()
     val chapters by vm.chapters.collectAsState()
     val refreshing by vm.refreshing.collectAsState()
+    val downloadStates by vm.downloadStates.collectAsState()
 
     Scaffold(
         topBar = {
@@ -111,7 +117,13 @@ fun MangaDetailScreen(
                 }
             }
             items(chapters, key = { it.id }) { chapter ->
-                ChapterRow(chapter) { onChapterClick(mangaId, chapter.id) }
+                ChapterRow(
+                    chapter = chapter,
+                    progress = downloadStates[chapter.id],
+                    onClick = { onChapterClick(mangaId, chapter.id) },
+                    onDownload = { vm.downloadChapter(chapter.id) },
+                    onDeleteDownload = { vm.deleteDownload(chapter.id) },
+                )
             }
         }
     }
@@ -180,37 +192,95 @@ private fun DetailHeader(manga: MangaEntity, onToggleFavorite: () -> Unit) {
 }
 
 @Composable
-private fun ChapterRow(chapter: ChapterEntity, onClick: () -> Unit) {
-    Column(
+private fun ChapterRow(
+    chapter: ChapterEntity,
+    progress: DownloadProgress?,
+    onClick: () -> Unit,
+    onDownload: () -> Unit,
+    onDeleteDownload: () -> Unit,
+) {
+    Row(
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            chapter.name,
-            color = if (chapter.read) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Row {
-            if (chapter.dateUpload > 0) {
-                Text(
-                    DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(chapter.dateUpload)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        Column(Modifier.weight(1f)) {
+            Text(
+                chapter.name,
+                color = if (chapter.read) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row {
+                if (chapter.dateUpload > 0) {
+                    Text(
+                        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(chapter.dateUpload)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                chapter.scanlator?.let {
+                    Text(
+                        "  •  $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-            chapter.scanlator?.let {
-                Text(
-                    "  •  $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+        }
+        DownloadControl(progress, onDownload, onDeleteDownload)
+    }
+}
+
+@Composable
+private fun DownloadControl(
+    progress: DownloadProgress?,
+    onDownload: () -> Unit,
+    onDeleteDownload: () -> Unit,
+) {
+    when (progress?.status) {
+        null -> IconButton(onClick = onDownload) {
+            Icon(
+                Icons.Filled.Download,
+                contentDescription = "Download",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        DownloadStatus.QUEUED -> Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        }
+        DownloadStatus.DOWNLOADING -> Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            if (progress.total > 0) {
+                CircularProgressIndicator(
+                    progress = { progress.done.toFloat() / progress.total },
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
                 )
+            } else {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             }
+        }
+        DownloadStatus.DOWNLOADED -> IconButton(onClick = onDeleteDownload) {
+            Icon(
+                Icons.Filled.DownloadDone,
+                contentDescription = "Downloaded — tap to delete",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        DownloadStatus.ERROR -> IconButton(onClick = onDownload) {
+            Icon(
+                Icons.Filled.ErrorOutline,
+                contentDescription = "Download failed — tap to retry",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }
