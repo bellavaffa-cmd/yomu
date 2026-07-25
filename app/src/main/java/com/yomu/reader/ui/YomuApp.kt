@@ -36,6 +36,7 @@ import com.yomu.reader.ui.more.MoreScreen
 import com.yomu.reader.ui.navigation.Routes
 import com.yomu.reader.ui.navigation.TopLevelDestination
 import com.yomu.reader.ui.reader.ReaderScreen
+import com.yomu.reader.ui.search.GlobalSearchScreen
 import com.yomu.reader.ui.updates.UpdatesScreen
 
 @Composable
@@ -87,6 +88,13 @@ fun YomuApp() {
                     padding,
                     onSourceClick = { navController.navigate(Routes.sourceBrowse(it)) },
                     onExtensionsClick = { navController.navigate(Routes.EXTENSIONS) },
+                    onGlobalSearchClick = { navController.navigate(Routes.GLOBAL_SEARCH) },
+                )
+            }
+            composable(Routes.GLOBAL_SEARCH) {
+                GlobalSearchScreen(
+                    onBack = { navController.popBackStack() },
+                    onMangaClick = { navController.navigate(Routes.detail(it)) },
                 )
             }
             composable(Routes.EXTENSIONS) {

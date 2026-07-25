@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,7 @@ fun BrowseScreen(
     contentPadding: PaddingValues,
     onSourceClick: (Long) -> Unit,
     onExtensionsClick: () -> Unit,
+    onGlobalSearchClick: () -> Unit,
 ) {
     val repository = rememberRepository()
     val allSources by repository.sources.sources.collectAsState()
@@ -47,7 +49,18 @@ fun BrowseScreen(
         ),
     ) {
         item {
-            ExtensionsEntry(onClick = onExtensionsClick)
+            EntryRow(
+                icon = Icons.Filled.Search,
+                title = "Search all sources",
+                subtitle = "Query every source at once",
+                onClick = onGlobalSearchClick,
+            )
+            EntryRow(
+                icon = Icons.Filled.Extension,
+                title = "Extensions",
+                subtitle = "Browse and install downloadable extensions",
+                onClick = onExtensionsClick,
+            )
             HorizontalDivider()
             SectionHeader("Installed sources")
         }
@@ -58,7 +71,12 @@ fun BrowseScreen(
 }
 
 @Composable
-private fun ExtensionsEntry(onClick: () -> Unit) {
+private fun EntryRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -66,15 +84,11 @@ private fun ExtensionsEntry(onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            Icons.Filled.Extension,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-        )
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f).padding(start = 16.dp)) {
-            Text("Extensions", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Text(title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
             Text(
-                "Browse and install downloadable extensions",
+                subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

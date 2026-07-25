@@ -13,8 +13,8 @@ android {
         minSdk 26
         targetSdk 34
         // versionCode scheme: major*10000 + minor*100 + patch
-        versionCode 700
-        versionName '0.7.0'
+        versionCode 800
+        versionName '0.8.0'
         vectorDrawables { useSupportLibrary true }
     }
 
