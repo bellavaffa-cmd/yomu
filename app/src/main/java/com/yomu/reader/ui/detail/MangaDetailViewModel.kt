@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yomu.reader.data.DownloadProgress
 import com.yomu.reader.data.MangaRepository
+import com.yomu.reader.data.db.CategoryEntity
 import com.yomu.reader.data.db.ChapterEntity
 import com.yomu.reader.data.db.MangaEntity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,12 @@ class MangaDetailViewModel(
 
     val downloadStates: StateFlow<Map<Long, DownloadProgress>> = repository.downloads.states
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val categories: StateFlow<List<CategoryEntity>> = repository.observeCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val mangaCategoryIds: StateFlow<List<Long>> = repository.observeCategoryIdsForManga(mangaId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing
@@ -58,5 +65,9 @@ class MangaDetailViewModel(
 
     fun toggleFavorite() {
         viewModelScope.launch { repository.toggleFavorite(mangaId) }
+    }
+
+    fun setCategories(categoryIds: List<Long>) {
+        viewModelScope.launch { repository.setMangaCategories(mangaId, categoryIds) }
     }
 }

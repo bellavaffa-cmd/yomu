@@ -24,18 +24,25 @@ import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +60,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.yomu.reader.data.DownloadProgress
 import com.yomu.reader.data.DownloadStatus
+import com.yomu.reader.data.db.CategoryEntity
 import com.yomu.reader.data.db.ChapterEntity
 import com.yomu.reader.data.db.MangaEntity
 import com.yomu.reader.source.model.SManga
@@ -75,6 +83,9 @@ fun MangaDetailScreen(
     val chapters by vm.chapters.collectAsState()
     val refreshing by vm.refreshing.collectAsState()
     val downloadStates by vm.downloadStates.collectAsState()
+    val categories by vm.categories.collectAsState()
+    val mangaCategoryIds by vm.mangaCategoryIds.collectAsState()
+    var showCategoryDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -97,7 +108,12 @@ fun MangaDetailScreen(
         ) {
             item {
                 manga?.let { m ->
-                    DetailHeader(m, onToggleFavorite = vm::toggleFavorite)
+                    DetailHeader(
+                        manga = m,
+                        categoriesAvailable = categories.isNotEmpty(),
+                        onToggleFavorite = vm::toggleFavorite,
+                        onEditCategories = { showCategoryDialog = true },
+                    )
                 }
             }
             item {
@@ -127,10 +143,27 @@ fun MangaDetailScreen(
             }
         }
     }
+
+    if (showCategoryDialog) {
+        CategorySelectDialog(
+            categories = categories,
+            selected = mangaCategoryIds,
+            onDismiss = { showCategoryDialog = false },
+            onConfirm = {
+                vm.setCategories(it)
+                showCategoryDialog = false
+            },
+        )
+    }
 }
 
 @Composable
-private fun DetailHeader(manga: MangaEntity, onToggleFavorite: () -> Unit) {
+private fun DetailHeader(
+    manga: MangaEntity,
+    categoriesAvailable: Boolean,
+    onToggleFavorite: () -> Unit,
+    onEditCategories: () -> Unit,
+) {
     Column {
         Row(Modifier.fillMaxWidth().padding(16.dp)) {
             AsyncImage(
@@ -178,6 +211,15 @@ private fun DetailHeader(manga: MangaEntity, onToggleFavorite: () -> Unit) {
             )
             Spacer(Modifier.width(8.dp))
             Text(if (manga.favorite) "In library" else "Add to library")
+        }
+
+        if (manga.favorite && categoriesAvailable) {
+            OutlinedButton(
+                onClick = onEditCategories,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+            ) {
+                Text("Edit categories")
+            }
         }
 
         manga.description?.takeIf { it.isNotBlank() }?.let { desc ->
@@ -283,6 +325,49 @@ private fun DownloadControl(
             )
         }
     }
+}
+
+@Composable
+private fun CategorySelectDialog(
+    categories: List<CategoryEntity>,
+    selected: List<Long>,
+    onDismiss: () -> Unit,
+    onConfirm: (List<Long>) -> Unit,
+) {
+    val checked = remember(selected) { mutableStateOf(selected.toSet()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Categories") },
+        text = {
+            Column {
+                categories.forEach { category ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                checked.value = checked.value.toMutableSet().apply {
+                                    if (!add(category.id)) remove(category.id)
+                                }
+                            }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = category.id in checked.value,
+                            onCheckedChange = { on ->
+                                checked.value = checked.value.toMutableSet().apply {
+                                    if (on) add(category.id) else remove(category.id)
+                                }
+                            },
+                        )
+                        Text(category.name, modifier = Modifier.padding(start = 4.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(checked.value.toList()) }) { Text("Save") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 private fun statusLabel(status: Int): String = when (status) {

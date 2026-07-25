@@ -1,5 +1,6 @@
 package com.yomu.reader.data
 
+import com.yomu.reader.data.db.CategoryEntity
 import com.yomu.reader.data.db.ChapterEntity
 import com.yomu.reader.data.db.HistoryEntity
 import com.yomu.reader.data.db.HistoryWithRelations
@@ -23,6 +24,7 @@ class MangaRepository(
     private val mangaDao get() = db.mangaDao()
     private val chapterDao get() = db.chapterDao()
     private val historyDao get() = db.historyDao()
+    private val categoryDao get() = db.categoryDao()
 
     val sources get() = sourceManager
 
@@ -90,6 +92,32 @@ class MangaRepository(
     }
 
     val downloads get() = downloadManager
+
+    // --- Categories ---
+
+    fun observeCategories(): Flow<List<CategoryEntity>> = categoryDao.observeAll()
+
+    fun observeLibraryInCategory(categoryId: Long): Flow<List<MangaEntity>> =
+        categoryDao.observeLibraryInCategory(categoryId)
+
+    fun observeCategoryIdsForManga(mangaId: Long): Flow<List<Long>> =
+        categoryDao.observeCategoryIdsForManga(mangaId)
+
+    suspend fun createCategory(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        categoryDao.insert(CategoryEntity(name = trimmed, sort = categoryDao.nextSort()))
+    }
+
+    suspend fun renameCategory(id: Long, name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isNotEmpty()) categoryDao.rename(id, trimmed)
+    }
+
+    suspend fun deleteCategory(id: Long) = categoryDao.delete(id)
+
+    suspend fun setMangaCategories(mangaId: Long, categoryIds: List<Long>) =
+        categoryDao.setCategoriesForManga(mangaId, categoryIds)
 
     // --- Read state / history ---
 

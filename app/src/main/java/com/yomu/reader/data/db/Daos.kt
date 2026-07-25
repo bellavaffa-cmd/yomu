@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -99,12 +100,45 @@ data class HistoryWithRelations(
 
 @Dao
 interface CategoryDao {
-    @Query("SELECT * FROM categories ORDER BY sort ASC")
+    @Query("SELECT * FROM categories ORDER BY sort ASC, name COLLATE NOCASE ASC")
     fun observeAll(): Flow<List<CategoryEntity>>
+
+    @Query("SELECT COALESCE(MAX(sort), -1) + 1 FROM categories")
+    suspend fun nextSort(): Int
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(category: CategoryEntity): Long
 
+    @Query("UPDATE categories SET name = :name WHERE id = :id")
+    suspend fun rename(id: Long, name: String)
+
     @Query("DELETE FROM categories WHERE id = :id")
     suspend fun delete(id: Long)
+
+    // --- manga ↔ category links ---
+
+    @Query("SELECT categoryId FROM manga_categories WHERE mangaId = :mangaId")
+    fun observeCategoryIdsForManga(mangaId: Long): Flow<List<Long>>
+
+    @Query("DELETE FROM manga_categories WHERE mangaId = :mangaId")
+    suspend fun clearCategoriesForManga(mangaId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertMangaCategories(rows: List<MangaCategoryEntity>)
+
+    @Transaction
+    suspend fun setCategoriesForManga(mangaId: Long, categoryIds: List<Long>) {
+        clearCategoriesForManga(mangaId)
+        insertMangaCategories(categoryIds.map { MangaCategoryEntity(mangaId, it) })
+    }
+
+    @Query(
+        """
+        SELECT m.* FROM manga m
+        INNER JOIN manga_categories mc ON mc.mangaId = m.id
+        WHERE m.favorite = 1 AND mc.categoryId = :categoryId
+        ORDER BY m.title COLLATE NOCASE ASC
+        """
+    )
+    fun observeLibraryInCategory(categoryId: Long): Flow<List<MangaEntity>>
 }

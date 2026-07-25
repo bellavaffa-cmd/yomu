@@ -25,6 +25,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.yomu.reader.ui.browse.BrowseScreen
 import com.yomu.reader.ui.browse.SourceBrowseScreen
+import com.yomu.reader.ui.category.CategoriesScreen
 import com.yomu.reader.ui.detail.MangaDetailScreen
 import com.yomu.reader.ui.downloads.DownloadsScreen
 import com.yomu.reader.ui.extension.ExtensionReposScreen
@@ -98,7 +99,14 @@ fun YomuApp() {
                 ExtensionReposScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.MORE) {
-                MoreScreen(padding, onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) })
+                MoreScreen(
+                    padding,
+                    onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) },
+                    onOpenCategories = { navController.navigate(Routes.CATEGORIES) },
+                )
+            }
+            composable(Routes.CATEGORIES) {
+                CategoriesScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.DOWNLOADS) {
                 DownloadsScreen(

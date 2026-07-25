@@ -10,6 +10,7 @@ object Routes {
     const val EXTENSIONS = "extensions"
     const val EXTENSION_REPOS = "extension_repos"
     const val DOWNLOADS = "downloads"
+    const val CATEGORIES = "categories"
 
     const val SOURCE_BROWSE = "source/{sourceId}"
     fun sourceBrowse(sourceId: Long) = "source/$sourceId"
