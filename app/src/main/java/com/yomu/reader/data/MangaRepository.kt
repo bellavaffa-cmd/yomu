@@ -10,6 +10,9 @@ import com.yomu.reader.source.SourceManager
 import com.yomu.reader.source.model.Page
 import com.yomu.reader.source.model.SManga
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Central repository. Bridges remote [SourceManager] calls with the local Room cache,
@@ -25,6 +28,11 @@ class MangaRepository(
     private val chapterDao get() = db.chapterDao()
     private val historyDao get() = db.historyDao()
     private val categoryDao get() = db.categoryDao()
+
+    /** Incremented on user-driven library/category mutations; drives auto-backup. */
+    private val _libraryChanges = MutableStateFlow(0L)
+    val libraryChanges: StateFlow<Long> = _libraryChanges.asStateFlow()
+    private fun notifyLibraryChanged() { _libraryChanges.value = _libraryChanges.value + 1 }
 
     val sources get() = sourceManager
 
@@ -57,6 +65,7 @@ class MangaRepository(
         val manga = mangaDao.getById(mangaId) ?: return false
         val newState = !manga.favorite
         mangaDao.setFavorite(mangaId, newState, if (newState) now() else manga.dateAdded)
+        notifyLibraryChanged()
         return newState
     }
 
@@ -107,17 +116,26 @@ class MangaRepository(
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         categoryDao.insert(CategoryEntity(name = trimmed, sort = categoryDao.nextSort()))
+        notifyLibraryChanged()
     }
 
     suspend fun renameCategory(id: Long, name: String) {
         val trimmed = name.trim()
-        if (trimmed.isNotEmpty()) categoryDao.rename(id, trimmed)
+        if (trimmed.isNotEmpty()) {
+            categoryDao.rename(id, trimmed)
+            notifyLibraryChanged()
+        }
     }
 
-    suspend fun deleteCategory(id: Long) = categoryDao.delete(id)
+    suspend fun deleteCategory(id: Long) {
+        categoryDao.delete(id)
+        notifyLibraryChanged()
+    }
 
-    suspend fun setMangaCategories(mangaId: Long, categoryIds: List<Long>) =
+    suspend fun setMangaCategories(mangaId: Long, categoryIds: List<Long>) {
         categoryDao.setCategoriesForManga(mangaId, categoryIds)
+        notifyLibraryChanged()
+    }
 
     // --- Sync (backup / restore) ---
 

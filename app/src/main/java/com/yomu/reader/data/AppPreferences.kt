@@ -1,6 +1,7 @@
 package com.yomu.reader.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -39,5 +40,13 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setLastDriveSync(timestamp: Long) {
         context.appPrefsDataStore.edit { it[lastDriveSyncKey] = timestamp }
+    }
+
+    private val autoSyncKey = booleanPreferencesKey("auto_sync")
+
+    val autoSync: Flow<Boolean> = context.appPrefsDataStore.data.map { it[autoSyncKey] ?: false }
+
+    suspend fun setAutoSync(enabled: Boolean) {
+        context.appPrefsDataStore.edit { it[autoSyncKey] = enabled }
     }
 }

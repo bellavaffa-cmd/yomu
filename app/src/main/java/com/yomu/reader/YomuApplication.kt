@@ -51,6 +51,8 @@ class YomuApplication : Application(), ImageLoaderFactory {
         ExtensionDependencies.userAgent = "Yomu/0.4 (Android manga reader)"
         // Load any installed extension APKs into live sources at startup.
         applicationScope.launch { extensionManager.loadInstalledExtensions() }
+        // Auto-backup to Drive on library changes (no-op unless enabled + signed in).
+        driveSyncManager.startAutoBackup(applicationScope)
     }
 
     override fun newImageLoader(): ImageLoader {

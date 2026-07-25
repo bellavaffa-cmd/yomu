@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -175,6 +176,7 @@ fun MoreScreen(
 private fun DriveSyncSection() {
     val sync = rememberDriveSyncManager()
     val state by sync.state.collectAsState()
+    val autoSync by sync.autoSync.collectAsState(initial = false)
     val scope = rememberCoroutineScope()
 
     val signInLauncher = rememberLauncherForActivityResult(
@@ -225,6 +227,23 @@ private fun DriveSyncSection() {
                         Button(onClick = { scope.launch { sync.backup() } }) { Text("Back up") }
                         OutlinedButton(onClick = { scope.launch { sync.restore() } }) { Text("Restore") }
                         TextButton(onClick = { sync.signOut() }) { Text("Sign out") }
+                    }
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Auto-backup", color = MaterialTheme.colorScheme.onSurface)
+                            Text(
+                                "Back up automatically when your library changes",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = autoSync,
+                            onCheckedChange = { on -> scope.launch { sync.setAutoSync(on) } },
+                        )
                     }
                 }
             }

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION") // classic GoogleSignIn is deprecated but remains the pragmatic Drive-scope path
+
 package com.yomu.reader.sync
 
 import android.content.Context
@@ -14,10 +16,19 @@ import com.yomu.reader.data.MangaRepository
 import com.yomu.reader.data.SyncPayload
 import com.yomu.reader.extension.ExtensionManager
 import com.yomu.reader.network.NetworkModule
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -40,6 +51,9 @@ data class DriveSyncState(
  * signing SHA-1 registered, the Drive API enabled, and the account added as a test user.
  * Auth uses classic Google Sign-In + GoogleAuthUtil to get a bearer token; Drive access
  * is via the plain REST API (no heavyweight client libraries).
+ *
+ * (Classic GoogleSignIn is deprecated in favour of Credential Manager, but remains the
+ * pragmatic path for requesting a Drive scope + an account usable with GoogleAuthUtil.)
  */
 class DriveSyncManager(
     private val context: Context,
@@ -61,6 +75,30 @@ class DriveSyncManager(
             .requestEmail()
             .requestScopes(Scope(DRIVE_APPDATA_SCOPE))
             .build()
+
+    val autoSync: Flow<Boolean> = appPreferences.autoSync
+
+    suspend fun setAutoSync(enabled: Boolean) = appPreferences.setAutoSync(enabled)
+
+    /**
+     * Watch library/category and extension-repo changes and auto-back-up (debounced),
+     * but only while auto-sync is enabled and an account is signed in.
+     */
+    @OptIn(FlowPreview::class)
+    fun startAutoBackup(scope: CoroutineScope) {
+        scope.launch {
+            merge(
+                repository.libraryChanges.drop(1).map { },
+                extensionRepoStore.repos.drop(1).map { },
+            )
+                .debounce(AUTO_BACKUP_DEBOUNCE_MS)
+                .collect {
+                    if (appPreferences.autoSync.first() && lastAccount() != null && !_state.value.busy) {
+                        backup()
+                    }
+                }
+        }
+    }
 
     fun signInIntent(): Intent = GoogleSignIn.getClient(context, signInOptions).signInIntent
 
@@ -189,6 +227,7 @@ class DriveSyncManager(
     companion object {
         private const val DRIVE_APPDATA_SCOPE = "https://www.googleapis.com/auth/drive.appdata"
         private const val FILE_NAME = "yomu-sync.json"
+        private const val AUTO_BACKUP_DEBOUNCE_MS = 5000L
         private val JSON = "application/json".toMediaType()
     }
 }
