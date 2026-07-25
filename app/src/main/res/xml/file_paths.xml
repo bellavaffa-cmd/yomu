@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- Downloaded extension APKs live under cacheDir/extensions and are shared
-         with the system package installer via FileProvider. -->
+    <!-- Downloaded extension APKs shared with the system package installer. -->
     <cache-path name="extensions" path="extensions/" />
+    <!-- Downloaded app-update APK. -->
+    <cache-path name="updates" path="updates/" />
 </paths>

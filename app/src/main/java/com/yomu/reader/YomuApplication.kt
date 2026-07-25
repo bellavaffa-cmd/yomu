@@ -12,6 +12,7 @@ import com.yomu.reader.extension.ExtensionManager
 import com.yomu.reader.network.NetworkModule
 import com.yomu.reader.source.ExtensionDependencies
 import com.yomu.reader.source.SourceManager
+import com.yomu.reader.update.UpdateManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,6 +38,7 @@ class YomuApplication : Application(), ImageLoaderFactory {
     val extensionRepoStore: ExtensionRepoStore by lazy { ExtensionRepoStore(this) }
     val extensionManager: ExtensionManager by lazy { ExtensionManager(this, sourceManager) }
     val appPreferences: AppPreferences by lazy { AppPreferences(this) }
+    val updateManager: UpdateManager by lazy { UpdateManager(this) }
 
     override fun onCreate() {
         super.onCreate()

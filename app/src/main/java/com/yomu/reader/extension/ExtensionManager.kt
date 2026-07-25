@@ -1,13 +1,10 @@
 package com.yomu.reader.extension
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.os.Build
-import android.provider.Settings
-import androidx.core.content.FileProvider
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import com.yomu.reader.data.ApkInstaller
 import com.yomu.reader.network.NetworkModule
 import com.yomu.reader.source.SourceManager
 import kotlinx.coroutines.Dispatchers
@@ -124,12 +121,12 @@ class ExtensionManager(
      * isn't permitted yet.
      */
     suspend fun downloadAndInstall(ext: AvailableExtension): Boolean {
-        if (!canInstall()) {
-            promptEnableUnknownSources()
+        if (!ApkInstaller.canInstall(context)) {
+            ApkInstaller.promptUnknownSources(context)
             return false
         }
         val apk = withContext(Dispatchers.IO) { downloadApk(ext) }
-        launchInstaller(apk)
+        ApkInstaller.install(context, apk)
         return true
     }
 
@@ -143,26 +140,5 @@ class ExtensionManager(
             target.sink().buffer().use { it.writeAll(source) }
         }
         return target
-    }
-
-    private fun launchInstaller(apk: File) {
-        val uri: Uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apk)
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(intent)
-    }
-
-    private fun canInstall(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()
-
-    private fun promptEnableUnknownSources() {
-        val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-            data = Uri.parse("package:${context.packageName}")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(intent)
     }
 }
