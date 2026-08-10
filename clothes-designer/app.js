@@ -113,7 +113,7 @@ const state = {
 let uid = 1;
 const nextId = () => uid++;
 
-const history = { stack: [], index: -1 };
+const hist = { stack: [], index: -1 };
 const canvas = document.getElementById('canvas');
 let ctx = canvas.getContext('2d'); // swappable so we can render into an offscreen canvas
 const W = canvas.width, H = canvas.height;
@@ -488,10 +488,10 @@ function snapshot() {
   });
 }
 function pushHistory() {
-  history.stack = history.stack.slice(0, history.index + 1);
-  history.stack.push(snapshot());
-  if (history.stack.length > 60) history.stack.shift();
-  history.index = history.stack.length - 1;
+  hist.stack = hist.stack.slice(0, hist.index + 1);
+  hist.stack.push(snapshot());
+  if (hist.stack.length > 60) hist.stack.shift();
+  hist.index = hist.stack.length - 1;
   updateHistoryButtons();
 }
 function restore(json) {
@@ -504,11 +504,11 @@ function restore(json) {
   uid = state.layers.reduce((m, l) => Math.max(m, l.id), 0) + 1;
   syncControls(); renderLayerList(); syncInspector(); draw();
 }
-function undo() { if (history.index > 0) { history.index--; restore(history.stack[history.index]); updateHistoryButtons(); autosave(); } }
-function redo() { if (history.index < history.stack.length - 1) { history.index++; restore(history.stack[history.index]); updateHistoryButtons(); autosave(); } }
+function undo() { if (hist.index > 0) { hist.index--; restore(hist.stack[hist.index]); updateHistoryButtons(); autosave(); } }
+function redo() { if (hist.index < hist.stack.length - 1) { hist.index++; restore(hist.stack[hist.index]); updateHistoryButtons(); autosave(); } }
 function updateHistoryButtons() {
-  document.getElementById('btn-undo').disabled = history.index <= 0;
-  document.getElementById('btn-redo').disabled = history.index >= history.stack.length - 1;
+  document.getElementById('btn-undo').disabled = hist.index <= 0;
+  document.getElementById('btn-redo').disabled = hist.index >= hist.stack.length - 1;
 }
 
 /* ------------------------------------------------------------------ *
@@ -686,13 +686,13 @@ function exportPng() {
 const GKEY = 'threadboard:gallery';
 const CKEY = 'threadboard:current';
 function autosave() {
-  try { localStorage.setItem(CKEY, snapshot()); } catch (_) {}
+  try { localStorage.setItem(CKEY, snapshot()); } catch (_) { /* storage unavailable/full — ignore */ }
 }
 function loadAutosave() {
   try {
     const j = localStorage.getItem(CKEY);
     if (j) { restore(j); pushHistory(); return true; }
-  } catch (_) {}
+  } catch (_) { /* corrupt/blocked storage — start fresh */ }
   return false;
 }
 function thumbnail() {
@@ -708,7 +708,7 @@ function getGallery() { try { return JSON.parse(localStorage.getItem(GKEY)) || [
 function saveDesign() {
   const gallery = getGallery();
   const entry = {
-    id: 'd' + history.stack.length + '_' + gallery.length + '_' + (state.layers.length),
+    id: 'd' + hist.stack.length + '_' + gallery.length + '_' + (state.layers.length),
     name: GARMENTS[state.garment].name,
     date: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
     thumb: thumbnail(),
