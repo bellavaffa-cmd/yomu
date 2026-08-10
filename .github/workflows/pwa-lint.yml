@@ -1,0 +1,54 @@
+name: PWA Lint
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'clothes-designer/**'
+      - '.github/workflows/pwa-lint.yml'
+  pull_request:
+    paths:
+      - 'clothes-designer/**'
+      - '.github/workflows/pwa-lint.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint Threadboard PWA
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clothes-designer
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax check (node --check)
+        run: |
+          for f in app.js sw.js tools/*.mjs; do
+            echo "checking $f"
+            node --check "$f"
+          done
+
+      - name: Install lint tooling
+        run: npm install --no-save --no-package-lock eslint@9 @eslint/js@9 globals@15
+
+      - name: ESLint
+        run: npx --no-install eslint .
+
+      - name: PWA checks (manifest, icons, service worker)
+        run: node tools/check-pwa.mjs
+
+      - name: Verify generated icons are up to date
+        run: |
+          node tools/gen-icons.mjs
+          if ! git diff --quiet -- icons; then
+            echo "::error::icons/ is out of date — run 'node tools/gen-icons.mjs' and commit the result"
+            git --no-pager diff --stat -- icons
+            exit 1
+          fi

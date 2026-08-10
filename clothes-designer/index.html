@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="description" content="Design custom apparel in your browser — pick a garment, add text, graphics and photos, then export or save. Installable and works offline." />
+  <title>Threadboard — Clothes Designer</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Threadboard" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icons/icon.svg" alt="" width="28" height="28" />
+      <div>
+        <h1>Threadboard</h1>
+        <span class="tagline">Clothes designer</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-undo" class="icon-btn" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
+      <button id="btn-redo" class="icon-btn" title="Redo (Ctrl+Y)" aria-label="Redo" disabled>↷</button>
+      <span class="sep"></span>
+      <button id="btn-save" class="btn">Save</button>
+      <button id="btn-gallery" class="btn ghost">Gallery</button>
+      <button id="btn-export" class="btn primary">Export PNG</button>
+      <button id="btn-install" class="btn ghost" hidden>Install app</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- LEFT: tools -->
+    <aside class="panel tools" aria-label="Design tools">
+      <section class="tool-group">
+        <h2>Garment</h2>
+        <div id="garment-picker" class="chip-grid" role="group" aria-label="Garment type"></div>
+      </section>
+
+      <section class="tool-group">
+        <h2>View</h2>
+        <div class="segmented" id="view-toggle" role="group" aria-label="Garment view">
+          <button data-view="front" class="active">Front</button>
+          <button data-view="back">Back</button>
+        </div>
+      </section>
+
+      <section class="tool-group">
+        <h2>Fabric colour</h2>
+        <div id="fabric-swatches" class="swatches" role="group" aria-label="Fabric colour"></div>
+        <label class="custom-color">
+          <span>Custom</span>
+          <input type="color" id="fabric-custom" value="#f4f4f5" />
+        </label>
+      </section>
+
+      <section class="tool-group">
+        <h2>Add to design</h2>
+        <div class="add-grid">
+          <button class="add-btn" data-add="text">＋ Text</button>
+          <button class="add-btn" data-add="image">🖼 Photo</button>
+          <button class="add-btn" data-add="rect">▭ Box</button>
+          <button class="add-btn" data-add="circle">⬤ Circle</button>
+          <button class="add-btn" data-add="triangle">▲ Triangle</button>
+          <button class="add-btn" data-add="star">★ Star</button>
+        </div>
+        <div class="sticker-row" id="sticker-row" aria-label="Stickers"></div>
+        <input type="file" id="file-input" accept="image/*" hidden />
+      </section>
+    </aside>
+
+    <!-- CENTER: canvas -->
+    <section class="stage" aria-label="Design canvas">
+      <div class="stage-inner">
+        <canvas id="canvas" width="880" height="1040" aria-label="Garment preview">
+          Your browser does not support the canvas element.
+        </canvas>
+      </div>
+      <p class="stage-hint" id="stage-hint">Tip: drag to move, use the corner handle to resize, the top handle to rotate.</p>
+    </section>
+
+    <!-- RIGHT: inspector -->
+    <aside class="panel inspector" aria-label="Layer inspector">
+      <section class="tool-group">
+        <h2>Layers</h2>
+        <ul id="layer-list" class="layer-list" aria-label="Layers"></ul>
+        <p id="layers-empty" class="muted">No design elements yet. Add text or graphics on the left.</p>
+      </section>
+
+      <section class="tool-group" id="properties" hidden>
+        <h2 id="prop-title">Element</h2>
+
+        <div class="prop-row" data-for="text">
+          <label>Text
+            <textarea id="p-text" rows="2" placeholder="Your text"></textarea>
+          </label>
+        </div>
+        <div class="prop-row" data-for="text">
+          <label>Font
+            <select id="p-font"></select>
+          </label>
+        </div>
+        <div class="prop-row two" data-for="text">
+          <label class="check"><input type="checkbox" id="p-bold" /> Bold</label>
+          <label class="check"><input type="checkbox" id="p-italic" /> Italic</label>
+        </div>
+
+        <div class="prop-row" data-for="fill">
+          <label>Colour
+            <input type="color" id="p-color" value="#111827" />
+          </label>
+        </div>
+
+        <div class="prop-row" data-for="all">
+          <label>Size <output id="p-scale-val"></output>
+            <input type="range" id="p-scale" min="12" max="400" value="100" />
+          </label>
+        </div>
+        <div class="prop-row" data-for="all">
+          <label>Rotation <output id="p-rot-val"></output>
+            <input type="range" id="p-rot" min="-180" max="180" value="0" />
+          </label>
+        </div>
+        <div class="prop-row" data-for="all">
+          <label>Opacity <output id="p-opacity-val"></output>
+            <input type="range" id="p-opacity" min="10" max="100" value="100" />
+          </label>
+        </div>
+
+        <div class="prop-actions">
+          <button class="btn ghost" id="p-back">⬇ Back</button>
+          <button class="btn ghost" id="p-front">⬆ Front</button>
+          <button class="btn ghost" id="p-dup">Duplicate</button>
+          <button class="btn danger" id="p-delete">Delete</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- Mobile tab bar -->
+  <nav class="mobile-tabs" aria-label="Panels">
+    <button data-tab="tools" class="active">🎨 Design</button>
+    <button data-tab="stage">👕 Preview</button>
+    <button data-tab="inspector">⚙️ Edit</button>
+  </nav>
+
+  <!-- Gallery dialog -->
+  <dialog id="gallery-dialog" class="dialog">
+    <div class="dialog-head">
+      <h2>Saved designs</h2>
+      <button class="icon-btn" id="gallery-close" aria-label="Close">✕</button>
+    </div>
+    <div id="gallery-grid" class="gallery-grid"></div>
+    <p id="gallery-empty" class="muted">Nothing saved yet. Design something and hit <strong>Save</strong>.</p>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

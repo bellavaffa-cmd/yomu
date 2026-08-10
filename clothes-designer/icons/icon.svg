@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Threadboard">
+  <rect x="30" y="30" width="452" height="452" rx="112" fill="#6366f1"/>
+  <path fill="#ffffff" d="M110 205 L192 149 L235 159 L256 197 L277 159 L320 149 L402 205 L356 280 L328 249 L338 460 L174 460 L184 249 L156 280 Z"/>
+  <circle cx="256" cy="292" r="41" fill="#f472b6"/>
+</svg>
